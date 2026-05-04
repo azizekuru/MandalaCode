@@ -1,0 +1,97 @@
+(* ─── PROGRAM ─────────────────────────────────────────────── *)
+
+<program>         ::= { <top_level> }
+
+<top_level>       ::= <brush_decl>
+                    | <pattern_decl>
+                    | <stmt>
+
+(* ─── DECLARATIONS ─────────────────────────────────────────── *)
+
+<brush_decl>      ::= "brush" IDENT "{"
+                          "radius" ":" <expr> ","
+                          "angle"  ":" <expr> ","
+                          "color"  ":" COLOR_LIT
+                      "}"
+
+<pattern_decl>    ::= "pattern" IDENT "(" [ <param_list> ] ")" <block>
+
+<param_list>      ::= <param> { "," <param> }
+<param>           ::= IDENT ":" <type>
+
+(* ─── TYPES ────────────────────────────────────────────────── *)
+
+<type>            ::= "angle"
+                    | "radius"
+                    | "color"
+                    | "int"
+                    | "bool"
+                    | "brush"
+
+(* ─── STATEMENTS ────────────────────────────────────────────── *)
+
+<block>           ::= "{" { <stmt> } "}"
+
+<stmt>            ::= <var_decl>
+                    | <assign_stmt>
+                    | <draw_stmt>
+                    | <radial_repeat_stmt>
+                    | <if_stmt>
+                    | <pattern_call_stmt>
+
+<var_decl>        ::= "let" IDENT ":" <type> "=" <expr> ";"
+
+<assign_stmt>     ::= IDENT "=" <expr> ";"
+
+<draw_stmt>       ::= "draw" IDENT ";"
+                    | "draw" "brush" "{"
+                          "radius" ":" <expr> ","
+                          "angle"  ":" <expr> ","
+                          "color"  ":" COLOR_LIT
+                      "}" ";"
+
+<radial_repeat_stmt> ::= "radial_repeat" "(" <expr> ")" <block>
+
+<if_stmt>         ::= "if" "(" <bool_expr> ")" <block>
+                      [ "else" <block> ]
+
+<pattern_call_stmt> ::= IDENT "(" [ <arg_list> ] ")" ";"
+
+<arg_list>        ::= <expr> { "," <expr> }
+
+(* ─── EXPRESSIONS ───────────────────────────────────────────── *)
+
+<bool_expr>       ::= <expr> <rel_op> <expr>
+                    | <bool_expr> "&&" <bool_expr>
+                    | <bool_expr> "||" <bool_expr>
+                    | "!" <bool_expr>
+                    | "true"
+                    | "false"
+
+<expr>            ::= <term> { ( "+" | "-" ) <term> }
+
+<term>            ::= <unary> { ( "*" | "/" ) <unary> }
+
+<unary>           ::= "-" <factor>
+                    | <factor>
+
+<factor>          ::= "(" <expr> ")"
+                    | IDENT "." FIELD
+                    | IDENT
+                    | ANGLE_LIT
+                    | RADIUS_LIT
+                    | INT_LIT
+                    | COLOR_LIT
+
+<rel_op>          ::= "==" | "!=" | "<" | "<=" | ">" | ">="
+
+(* ─── LEXICAL RULES ─────────────────────────────────────────── *)
+
+IDENT             ::= [a-zA-Z_][a-zA-Z0-9_]*
+ANGLE_LIT         ::= [0-9]+ "deg"
+                    | [0-9]+ "." [0-9]+ "deg"
+RADIUS_LIT        ::= [0-9]+ "r"
+                    | [0-9]+ "." [0-9]+ "r"
+INT_LIT           ::= [0-9]+
+COLOR_LIT         ::= "#" [0-9A-Fa-f]{6}
+FIELD             ::= "radius" | "angle" | "color"
