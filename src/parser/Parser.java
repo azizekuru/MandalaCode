@@ -5,6 +5,7 @@ import ast.*;
 import lexer.Token;
 import lexer.TokenType;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Parser {
@@ -21,9 +22,351 @@ public class Parser {
     // PUBLIC ENTRY POINT
     // ════════════════════════════════════════════════════════════
 
+    // ════════════════════════════════════════════════════════════
+    // STATEMENT PARSING
+    // Add these methods to Parser.java, inside the Parser class.
+    // Replace the existing parse() stub with the one below.
+    // ════════════════════════════════════════════════════════════
+
+    // ── Entry point ──────────────────────────────────────────────
+
     public ProgramNode parse() {
-        // will be implemented when statement parsing is added
-        throw new UnsupportedOperationException("Statement parsing not yet implemented.");
+        List<Statement> topLevel = new ArrayList<>();
+
+        while (!isAtEnd()) {
+            topLevel.add(parseTopLevel());
+        }
+
+        return new ProgramNode(topLevel);
+    }
+
+    // ── Top-level dispatcher ─────────────────────────────────────
+
+    // A top-level item is either a brush declaration, a pattern
+    // declaration, or a statement. All three are subtypes of
+    // Statement in our AST, so the return type is Statement.
+    private Statement parseTopLevel() {
+        Token current = peek();
+
+        if (current.is(TokenType.BRUSH))
+            return parseBrushDecl();
+        if (current.is(TokenType.PATTERN))
+            return parsePatternDecl();
+        return parseStatement();
+    }
+
+    // ── Statement dispatcher ─────────────────────────────────────
+
+    // Dispatches to the correct parse method based on the current
+    // token. Called both at the top level and inside blocks.
+    private Statement parseStatement() {
+        Token current = peek();
+
+        if (current.is(TokenType.LET))
+            return parseVarDecl();
+        if (current.is(TokenType.IF))
+            return parseIfStmt();
+        if (current.is(TokenType.DRAW))
+            return parseDrawStmt();
+        if (current.is(TokenType.RADIAL_REPEAT))
+            return parseRadialRepeat();
+
+        // IDENT followed by '=' → assignment
+        // IDENT followed by '(' → pattern call
+        if (current.is(TokenType.IDENT)) {
+            if (tokens.get(pos + 1).is(TokenType.ASSIGN))
+                return parseAssignStmt();
+            if (tokens.get(pos + 1).is(TokenType.LPAREN))
+                return parsePatternCallStmt();
+        }
+
+        throw parseError(current,
+                "unexpected token '" + current.getValue()
+                        + "' — expected a statement");
+    }
+
+    // ── Block ─────────────────────────────────────────────────────
+
+    // <block> ::= "{" { <stmt> } "}"
+    private List<Statement> parseBlock() {
+        consume(TokenType.LBRACE, "expected '{' to open block");
+        List<Statement> stmts = new ArrayList<>();
+
+        while (!isAtEnd() && !peek().is(TokenType.RBRACE)) {
+            stmts.add(parseStatement());
+        }
+
+        consume(TokenType.RBRACE, "expected '}' to close block");
+        return stmts;
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // DECLARATION STATEMENTS
+    // ════════════════════════════════════════════════════════════
+
+    // <brush_decl> ::= "brush" IDENT "{"
+    // "radius" ":" <expr> ","
+    // "angle" ":" <expr> ","
+    // "color" ":" COLOR_LIT
+    // "}"
+    private BrushDeclStmt parseBrushDecl() {
+        Token brushToken = consume(TokenType.BRUSH, "expected 'brush'");
+        Token nameToken = consume(TokenType.IDENT, "expected brush name after 'brush'");
+
+        consume(TokenType.LBRACE, "expected '{' after brush name '"
+                + nameToken.getValue() + "'");
+
+        consume(TokenType.TYPE_RADIUS, "expected 'radius' field in brush body");
+        consume(TokenType.COLON, "expected ':' after 'radius'");
+        Expression radius = parseExpr();
+        consume(TokenType.COMMA, "expected ',' after radius value");
+
+        consume(TokenType.TYPE_ANGLE, "expected 'angle' field in brush body");
+        consume(TokenType.COLON, "expected ':' after 'angle'");
+        Expression angle = parseExpr();
+        consume(TokenType.COMMA, "expected ',' after angle value");
+
+        consume(TokenType.TYPE_COLOR, "expected 'color' field in brush body");
+        consume(TokenType.COLON, "expected ':' after 'color'");
+        Token colorToken = consume(TokenType.COLOR_LIT,
+                "expected a color literal (e.g. #FF8800) after 'color:'");
+
+        consume(TokenType.RBRACE, "expected '}' to close brush declaration '"
+                + nameToken.getValue() + "'");
+
+        Expression color = new ColorLitExpr(
+                colorToken.getValue(), colorToken.getLineNumber());
+
+        return new BrushDeclStmt(
+                nameToken.getValue(), radius, angle, color,
+                brushToken.getLineNumber());
+    }
+
+    // <pattern_decl> ::= "pattern" IDENT "(" [ <param_list> ] ")" <block>
+    private PatternDeclStmt parsePatternDecl() {
+        Token patternToken = consume(TokenType.PATTERN, "expected 'pattern'");
+        Token nameToken = consume(TokenType.IDENT, "expected pattern name after 'pattern'");
+
+        consume(TokenType.LPAREN, "expected '(' after pattern name '"
+                + nameToken.getValue() + "'");
+
+        List<PatternParam> params = new ArrayList<>();
+        if (!peek().is(TokenType.RPAREN)) {
+            params = parseParamList();
+        }
+
+        consume(TokenType.RPAREN, "expected ')' after parameter list");
+
+        List<Statement> body = parseBlock();
+
+        return new PatternDeclStmt(
+                nameToken.getValue(), params, body,
+                patternToken.getLineNumber());
+    }
+
+    // <param_list> ::= <param> { "," <param> }
+    // <param> ::= IDENT ":" <type>
+    private List<PatternParam> parseParamList() {
+        List<PatternParam> params = new ArrayList<>();
+        params.add(parseParam());
+
+        while (peek().is(TokenType.COMMA)) {
+            advance(); // consume ','
+            params.add(parseParam());
+        }
+
+        return params;
+    }
+
+    private PatternParam parseParam() {
+        Token nameToken = consume(TokenType.IDENT, "expected parameter name");
+        consume(TokenType.COLON, "expected ':' after parameter name '"
+                + nameToken.getValue() + "'");
+        String typeName = parseTypeName();
+        return new PatternParam(nameToken.getValue(), typeName, nameToken.getLineNumber());
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // SIMPLE STATEMENTS
+    // ════════════════════════════════════════════════════════════
+
+    // <var_decl> ::= "let" IDENT ":" <type> "=" <expr> ";"
+    private VarDeclStmt parseVarDecl() {
+        Token letToken = consume(TokenType.LET, "expected 'let'");
+        Token nameToken = consume(TokenType.IDENT, "expected variable name after 'let'");
+
+        consume(TokenType.COLON, "expected ':' after variable name '"
+                + nameToken.getValue() + "'");
+
+        String typeName = parseTypeName();
+
+        consume(TokenType.ASSIGN, "expected '=' after type in declaration of '"
+                + nameToken.getValue() + "'");
+
+        Expression initializer = parseExpr();
+
+        consume(TokenType.SEMICOLON, "expected ';' after variable declaration");
+
+        return new VarDeclStmt(
+                nameToken.getValue(), typeName, initializer,
+                letToken.getLineNumber());
+    }
+
+    // <assign_stmt> ::= IDENT "=" <expr> ";"
+    private AssignStmt parseAssignStmt() {
+        Token nameToken = consume(TokenType.IDENT, "expected variable name");
+        consume(TokenType.ASSIGN, "expected '=' after '"
+                + nameToken.getValue() + "'");
+        Expression value = parseExpr();
+        consume(TokenType.SEMICOLON, "expected ';' after assignment");
+
+        return new AssignStmt(
+                nameToken.getValue(), value,
+                nameToken.getLineNumber());
+    }
+
+    // <draw_stmt> ::= "draw" IDENT ";"
+    // | "draw" "brush" "{" ... "}" ";"
+    private DrawStmt parseDrawStmt() {
+        Token drawToken = consume(TokenType.DRAW, "expected 'draw'");
+
+        // draw brush { ... } — inline brush literal
+        if (peek().is(TokenType.BRUSH)) {
+            advance(); // consume 'brush'
+            consume(TokenType.LBRACE, "expected '{' after 'draw brush'");
+
+            consume(TokenType.TYPE_RADIUS, "expected 'radius' field in inline brush");
+            consume(TokenType.COLON, "expected ':' after 'radius'");
+            Expression radius = parseExpr();
+            consume(TokenType.COMMA, "expected ',' after radius value");
+
+            consume(TokenType.TYPE_ANGLE, "expected 'angle' field in inline brush");
+            consume(TokenType.COLON, "expected ':' after 'angle'");
+            Expression angle = parseExpr();
+            consume(TokenType.COMMA, "expected ',' after angle value");
+
+            consume(TokenType.TYPE_COLOR, "expected 'color' field in inline brush");
+            consume(TokenType.COLON, "expected ':' after 'color'");
+            Token colorToken = consume(TokenType.COLOR_LIT,
+                    "expected a color literal (e.g. #FF8800) after 'color:'");
+
+            consume(TokenType.RBRACE, "expected '}' to close inline brush");
+            consume(TokenType.SEMICOLON, "expected ';' after draw statement");
+
+            Expression color = new ColorLitExpr(
+                    colorToken.getValue(), colorToken.getLineNumber());
+
+            return new DrawStmt(radius, angle, color, drawToken.getLineNumber());
+        }
+
+        // draw namedBrush; — named brush reference
+        Token nameToken = consume(TokenType.IDENT,
+                "expected a brush name or 'brush' keyword after 'draw'");
+        consume(TokenType.SEMICOLON, "expected ';' after draw statement");
+
+        return new DrawStmt(nameToken.getValue(), drawToken.getLineNumber());
+    }
+
+    // <radial_repeat_stmt> ::= "radial_repeat" "(" <expr> ")" <block>
+    private RadialRepeatStmt parseRadialRepeat() {
+        Token repeatToken = consume(TokenType.RADIAL_REPEAT, "expected 'radial_repeat'");
+
+        consume(TokenType.LPAREN, "expected '(' after 'radial_repeat'");
+        Expression count = parseExpr();
+        consume(TokenType.RPAREN, "expected ')' after repeat count");
+
+        List<Statement> body = parseBlock();
+
+        return new RadialRepeatStmt(count, body, repeatToken.getLineNumber());
+    }
+
+    // <if_stmt> ::= "if" "(" <bool_expr> ")" <block> [ "else" <block> ]
+    //
+    // Dangling-else resolution: the [ "else" <block> ] is consumed
+    // greedily here. When this method sees ELSE it always binds it to
+    // the current (nearest) if — the eager-else convention.
+    private IfStmt parseIfStmt() {
+        Token ifToken = consume(TokenType.IF, "expected 'if'");
+
+        consume(TokenType.LPAREN, "expected '(' after 'if'");
+        BoolExpr condition = parseBoolExpr();
+        consume(TokenType.RPAREN, "expected ')' after condition");
+
+        List<Statement> thenBlock = parseBlock();
+
+        List<Statement> elseBlock = null;
+        if (peek().is(TokenType.ELSE)) {
+            advance(); // consume 'else'
+            elseBlock = parseBlock();
+        }
+
+        return new IfStmt(condition, thenBlock, elseBlock, ifToken.getLineNumber());
+    }
+
+    // <pattern_call_stmt> ::= IDENT "(" [ <arg_list> ] ")" ";"
+    private PatternCallStmt parsePatternCallStmt() {
+        Token nameToken = consume(TokenType.IDENT, "expected pattern name");
+        consume(TokenType.LPAREN, "expected '(' after '"
+                + nameToken.getValue() + "'");
+
+        List<Expression> args = new ArrayList<>();
+        if (!peek().is(TokenType.RPAREN)) {
+            args = parseArgList();
+        }
+
+        consume(TokenType.RPAREN, "expected ')' after argument list");
+        consume(TokenType.SEMICOLON, "expected ';' after pattern call");
+
+        return new PatternCallStmt(
+                nameToken.getValue(), args,
+                nameToken.getLineNumber());
+    }
+
+    // <arg_list> ::= <expr> { "," <expr> }
+    private List<Expression> parseArgList() {
+        List<Expression> args = new ArrayList<>();
+        args.add(parseExpr());
+
+        while (peek().is(TokenType.COMMA)) {
+            advance(); // consume ','
+            args.add(parseExpr());
+        }
+
+        return args;
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // TYPE NAME HELPER
+    // ════════════════════════════════════════════════════════════
+
+    // Consumes one type keyword and returns its string name.
+    // Called from parseVarDecl() and parseParam().
+    private String parseTypeName() {
+        Token t = peek();
+        switch (t.getType()) {
+            case TYPE_ANGLE:
+                advance();
+                return "angle";
+            case TYPE_RADIUS:
+                advance();
+                return "radius";
+            case TYPE_COLOR:
+                advance();
+                return "color";
+            case TYPE_INT:
+                advance();
+                return "int";
+            case TYPE_BOOL:
+                advance();
+                return "bool";
+            case BRUSH:
+                advance();
+                return "brush";
+            default:
+                throw parseError(t,
+                        "expected a type name (angle, radius, color, int, bool, brush) "
+                                + "but found '" + t.getValue() + "'");
+        }
     }
 
     // ════════════════════════════════════════════════════════════
