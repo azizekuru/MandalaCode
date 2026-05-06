@@ -6,6 +6,7 @@ Course project for CSE 341, Gebze Technical University, Spring 2026.
 ---
 
 ## Project Structure
+```text
 MandalaCode/
 ├── src/
 │   ├── Main.java
