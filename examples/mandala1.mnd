@@ -1,0 +1,10 @@
+brush star {
+    radius: 10,
+    angle: 30,
+    color: #FFD700
+}
+
+radial_repeat (6) {
+    draw star;
+    let x : int = 5 * (2 + 3);
+}
