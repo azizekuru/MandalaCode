@@ -39,10 +39,14 @@ MandalaCode/
 │   └── parser/
 │       └── Parser.java
 └── examples/
-├── mandala1.mnd
-├── mandala2.mnd
-└── mandala3.mnd
-
+    ├── mandala1.mnd
+    ├── mandala2.mnd
+    ├── mandala3.mnd
+    ├── bad1.mnd
+    ├── bad2.mnd
+    ├── bad3.mnd
+    ├── bad4.mnd
+    └── bad5.mnd
 ---
 
 ## Build Instructions
