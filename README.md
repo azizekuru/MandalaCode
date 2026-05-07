@@ -93,16 +93,17 @@ java -cp out Main examples/mandala1.mnd --dump-ast
 java -cp out Main examples/mandala1.mnd --print-tokens --dump-ast
 
 # See a lexer error (malformed color literal)
-java -cp out Main examples/bad_color.mnd
+java -cp out Main examples/bad2.mnd
 
 # See a parser error (missing semicolon)
-java -cp out Main examples/bad_syntax.mnd
-```
+java -cp out Main examples/bad1.mnd
 
 ---
 
 ## Error Format
 
 All errors are printed to `stderr` and exit with code `1`.
-[Lexer error]  Line 4: invalid color literal '#XYZ': expected exactly 6 hexadecimal digits after '#'
-[Parser error] Line 7: expected ';' after variable declaration
+
+```text
+[Lexer error] Line 7: invalid color literal '#': expected exactly 6 hexadecimal digits after '#' (e.g. #FF8800)
+[Parser error] Line 5: expected ';' after variable declaration
