@@ -1,10 +1,16 @@
-brush star {
-    radius: 10,
-    angle: 30,
-    color: #FFD700
+// mandala1.mnd
+// A simple symmetric mandala with 8 identical petals.
+// Exercises: brush declaration, radial_repeat, named draw.
+
+brush petal {
+    radius: 40.0,
+    angle: 45.0,
+    color: #FF4500
 }
 
-radial_repeat (6) {
-    draw star;
-    let x : int = 5 * (2 + 3);
+let segments : int = 8;
+let step : angle = 45.0;
+
+radial_repeat(segments) {
+    draw petal;
 }
