@@ -47,6 +47,7 @@ MandalaCode/
     ├── bad3.mnd
     ├── bad4.mnd
     └── bad5.mnd
+```
 ---
 
 ## Build Instructions
@@ -97,7 +98,7 @@ java -cp out Main examples/bad2.mnd
 
 # See a parser error (missing semicolon)
 java -cp out Main examples/bad1.mnd
-
+```
 ---
 
 ## Error Format
@@ -107,3 +108,5 @@ All errors are printed to `stderr` and exit with code `1`.
 ```text
 [Lexer error] Line 7: invalid color literal '#': expected exactly 6 hexadecimal digits after '#' (e.g. #FF8800)
 [Parser error] Line 5: expected ';' after variable declaration
+```
+---
