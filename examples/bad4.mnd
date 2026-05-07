@@ -1,0 +1,4 @@
+// bad4.mnd
+// The '@' character is not part of MandalaCode's alphabet.
+
+let size : radius = 10.0 @ 2.0;

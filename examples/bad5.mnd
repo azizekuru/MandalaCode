@@ -1,0 +1,12 @@
+// bad5.mnd
+// Pattern call is missing the closing ')'.
+
+pattern ring(r : radius) {
+    draw brush {
+        radius: r,
+        angle: 45.0,
+        color: #AABBCC
+    };
+}
+
+ring(30.0;

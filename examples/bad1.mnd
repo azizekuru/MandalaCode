@@ -1,0 +1,5 @@
+// bad1.mnd
+// Missing semicolon after variable declaration.
+
+let rings : int = 3
+let petals : int = 12;

@@ -1,0 +1,9 @@
+// bad3.mnd
+// Brush declaration is never closed — missing '}'.
+
+brush unclosed {
+    radius: 25.0,
+    angle: 90.0,
+    color: #123456
+
+let x : int = 1;

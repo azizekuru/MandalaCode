@@ -1,0 +1,8 @@
+// bad2.mnd
+// Malformed color literal — only 3 hex digits instead of 6.
+
+brush broken {
+    radius: 30.0,
+    angle: 45.0,
+    color: #XYZ
+}
