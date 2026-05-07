@@ -109,6 +109,7 @@ public class Parser {
     // "angle" ":" <expr> ","
     // "color" ":" COLOR_LIT
     // "}"
+    // parseBrushDecl() — corrected color field
     private BrushDeclStmt parseBrushDecl() {
         Token brushToken = consume(TokenType.BRUSH, "expected 'brush'");
         Token nameToken = consume(TokenType.IDENT, "expected brush name after 'brush'");
@@ -128,14 +129,10 @@ public class Parser {
 
         consume(TokenType.TYPE_COLOR, "expected 'color' field in brush body");
         consume(TokenType.COLON, "expected ':' after 'color'");
-        Token colorToken = consume(TokenType.COLOR_LIT,
-                "expected a color literal (e.g. #FF8800) after 'color:'");
+        Expression color = parseExpr(); // ← fixed
 
         consume(TokenType.RBRACE, "expected '}' to close brush declaration '"
                 + nameToken.getValue() + "'");
-
-        Expression color = new ColorLitExpr(
-                colorToken.getValue(), colorToken.getLineNumber());
 
         return new BrushDeclStmt(
                 nameToken.getValue(), radius, angle, color,
@@ -227,12 +224,12 @@ public class Parser {
 
     // <draw_stmt> ::= "draw" IDENT ";"
     // | "draw" "brush" "{" ... "}" ";"
+    // parseDrawStmt() — corrected inline brush color field
     private DrawStmt parseDrawStmt() {
         Token drawToken = consume(TokenType.DRAW, "expected 'draw'");
 
-        // draw brush { ... } — inline brush literal
         if (peek().is(TokenType.BRUSH)) {
-            advance(); // consume 'brush'
+            advance();
             consume(TokenType.LBRACE, "expected '{' after 'draw brush'");
 
             consume(TokenType.TYPE_RADIUS, "expected 'radius' field in inline brush");
@@ -247,19 +244,14 @@ public class Parser {
 
             consume(TokenType.TYPE_COLOR, "expected 'color' field in inline brush");
             consume(TokenType.COLON, "expected ':' after 'color'");
-            Token colorToken = consume(TokenType.COLOR_LIT,
-                    "expected a color literal (e.g. #FF8800) after 'color:'");
+            Expression color = parseExpr(); // ← fixed
 
             consume(TokenType.RBRACE, "expected '}' to close inline brush");
             consume(TokenType.SEMICOLON, "expected ';' after draw statement");
 
-            Expression color = new ColorLitExpr(
-                    colorToken.getValue(), colorToken.getLineNumber());
-
             return new DrawStmt(radius, angle, color, drawToken.getLineNumber());
         }
 
-        // draw namedBrush; — named brush reference
         Token nameToken = consume(TokenType.IDENT,
                 "expected a brush name or 'brush' keyword after 'draw'");
         consume(TokenType.SEMICOLON, "expected ';' after draw statement");
