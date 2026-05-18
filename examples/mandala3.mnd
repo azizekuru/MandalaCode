@@ -1,20 +1,19 @@
-// mandala3.mnd
-// A multi-ring mandala built from nested repetition and computed geometry.
-// Exercises: nested radial_repeat, arithmetic in expressions,
-//            inline brush draw, boolean condition in if.
-
-let rings     : int   = 3;
-let petals    : int   = 12;
-let baseSize  : radius = 15.0;
-let increment : radius = 20.0;
+let rings     : int    = 3;
+let petals    : int    = 12;
+// Sınırları taşmamak için 15'ten 10'a düşürdük
+let baseSize  : radius = 10.0; 
+let increment : radius = 5.0;
 
 pattern buildRing(size : radius, count : int, col : color) {
+    let a    : angle = 0.0;
+    let step : angle = 360.0 / count;
     radial_repeat(count) {
         draw brush {
             radius: size,
-            angle: 360.0 / count,
-            color: col
+            angle:  a,
+            color:  col
         };
+        a = a + step;
     }
 }
 
@@ -26,8 +25,8 @@ let showCenter : bool = true;
 
 if (showCenter == true) {
     draw brush {
-        radius: 5.0,
-        angle: 0.0,
-        color: #F1FAEE
+        radius: 0.0, // Sağa kaymasın, tam merkeze otursun
+        angle:  0.0,
+        color:  #F1FAEE
     };
 }

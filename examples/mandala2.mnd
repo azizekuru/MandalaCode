@@ -1,36 +1,38 @@
 // mandala2.mnd
-// A layered mandala that draws different rings depending on layer index.
 // Exercises: pattern declaration, parameters, if/else, field access.
 
-brush innerRing {
-    radius: 20.0,
+brush centerDot1 {
+    radius: 0.0,
     angle: 0.0,
     color: #00BFFF
 }
 
-brush outerRing {
-    radius: 60.0,
+brush centerDot2 {
+    radius: 0.0,
     angle: 0.0,
     color: #FFD700
 }
 
 pattern drawLayer(layerIndex : int, spacing : radius) {
     if (layerIndex == 1) {
-        draw innerRing;
+        draw centerDot1;
     } else {
-        draw outerRing;
+        draw centerDot2;
     }
 
     let adjustedRadius : radius = spacing * 2.0;
-
+    let a : angle = 0.0;
+    let step : angle = 60.0;
+    
     radial_repeat(6) {
         draw brush {
             radius: adjustedRadius,
-            angle: 60.0,
-            color: #9400D3
+            angle:  a,
+            color:  #9400D3
         };
+        a = a + step;
     }
 }
 
-drawLayer(1, 10.0);
-drawLayer(2, 20.0);
+drawLayer(1, 5.0);
+drawLayer(2, 8.0);

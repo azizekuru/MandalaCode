@@ -1,16 +1,17 @@
 // mandala1.mnd
-// A simple symmetric mandala with 8 identical petals.
-// Exercises: brush declaration, radial_repeat, named draw.
+// A simple symmetric mandala with 8 evenly distributed petals.
+// Exercises: variable declaration, radial_repeat, assignment,
+//            inline brush draw, arithmetic expression.
 
-brush petal {
-    radius: 40.0,
-    angle: 45.0,
-    color: #FF4500
-}
-
-let segments : int = 8;
-let step : angle = 45.0;
+let r        : radius = 20.0;
+let a        : angle  = 0.0;
+let segments : int    = 8;
 
 radial_repeat(segments) {
-    draw petal;
+    draw brush {
+        radius: r,
+        angle:  a,
+        color:  #FF4500
+    };
+    a = a + 45.0;
 }
