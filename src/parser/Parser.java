@@ -460,12 +460,11 @@ public class Parser {
         // ── boolean literals ─────────────────────────────────────
         if (current.is(TokenType.TRUE)) {
             advance();
-            // represent as IntLitExpr(1) internally, or add BoolLitExpr later
-            return new IntLitExpr(1, current.getLineNumber());
+            return new BoolLitExpr(true, current.getLineNumber());
         }
         if (current.is(TokenType.FALSE)) {
             advance();
-            return new IntLitExpr(0, current.getLineNumber());
+            return new BoolLitExpr(false, current.getLineNumber());
         }
 
         // ── identifier or field access ───────────────────────────
@@ -546,11 +545,11 @@ public class Parser {
         // ── bare boolean literals ────────────────────────────────
         if (peek().is(TokenType.TRUE)) {
             Token t = advance();
-            return new IntLitExpr(1, t.getLineNumber());
+            return new BoolLitExpr(true, t.getLineNumber());
         }
         if (peek().is(TokenType.FALSE)) {
             Token t = advance();
-            return new IntLitExpr(0, t.getLineNumber());
+            return new BoolLitExpr(false, t.getLineNumber());
         }
 
         // ── relational: <expr> <rel_op> <expr> ──────────────────
