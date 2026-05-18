@@ -8,6 +8,7 @@ import java.util.List;
 public class Interpreter {
 
     private final RuntimeEnvironment env = new RuntimeEnvironment();
+    private final Canvas canvas = new Canvas(); // <-- Canvas eklendi
 
     // ════════════════════════════════════════════════════════════
     // PUBLIC ENTRY POINT
@@ -19,6 +20,11 @@ public class Interpreter {
             executeStatement(stmt);
         }
         env.exitScope();
+
+        // Program tamamen bittikten sonra Canvas'ı ekrana basıyoruz
+        canvas.markOrigin();
+        System.out.println();
+        canvas.print();
     }
 
     // ════════════════════════════════════════════════════════════
@@ -83,7 +89,7 @@ public class Interpreter {
         env.assign(stmt.getName(), value, stmt.getLine());
     }
 
-    // ── Remaining statement executors (stubs — expanded next) ────
+    // ── Remaining statement executors ────────────────────────────
 
     private void executeBrushDecl(BrushDeclStmt stmt) {
         double radius = toDouble(evaluate(stmt.getRadius()), stmt.getLine());
@@ -93,19 +99,30 @@ public class Interpreter {
     }
 
     private void executeDraw(DrawStmt stmt) {
-        // Canvas rendering will be implemented in the next step.
-        // For now, print a description so example programs produce visible output.
+        double radius;
+        double angle;
+
         if (stmt.isNamed()) {
             Value v = env.lookup(stmt.getBrushName(), stmt.getLine());
-            System.out.println("[draw] " + v.display());
+            if (!(v instanceof BrushValue)) {
+                throw new RuntimeError(
+                        "draw: '" + stmt.getBrushName()
+                                + "' is not a brush value",
+                        stmt.getLine());
+            }
+            BrushValue brush = (BrushValue) v;
+            radius = brush.getRadius();
+            angle = brush.getAngle();
         } else {
-            double radius = toDouble(evaluate(stmt.getRadius()), stmt.getLine());
-            double angle = toDouble(evaluate(stmt.getAngle()), stmt.getLine());
-            ColorValue color = toColor(evaluate(stmt.getColor()), stmt.getLine());
-            System.out.println("[draw] brush { radius: " + radius
-                    + ", angle: " + angle
-                    + ", color: " + color.display() + " }");
+            radius = toDouble(evaluate(stmt.getRadius()), stmt.getLine());
+            angle = toDouble(evaluate(stmt.getAngle()), stmt.getLine());
+            // color is evaluated for type-checking completeness
+            // but not used by the ASCII canvas.
+            toColor(evaluate(stmt.getColor()), stmt.getLine());
         }
+
+        // Değerleri Canvas'a çizdiriyoruz
+        canvas.drawPoint(radius, angle);
     }
 
     private void executeRadialRepeat(RadialRepeatStmt stmt) {
@@ -190,6 +207,8 @@ public class Interpreter {
     public Value evaluate(Expression expr) {
         if (expr instanceof IntLitExpr)
             return evaluateIntLit((IntLitExpr) expr);
+        if (expr instanceof BoolLitExpr)
+            return evaluateBoolLit((BoolLitExpr) expr);
         if (expr instanceof FloatLitExpr)
             return evaluateFloatLit((FloatLitExpr) expr);
         if (expr instanceof ColorLitExpr)
@@ -222,6 +241,10 @@ public class Interpreter {
 
     private Value evaluateColorLit(ColorLitExpr expr) {
         return new ColorValue(expr.getHexValue());
+    }
+
+    private Value evaluateBoolLit(BoolLitExpr expr) {
+        return BoolValue.of(expr.getValue());
     }
 
     // ── Identifier ────────────────────────────────────────────────
