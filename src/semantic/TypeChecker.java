@@ -224,6 +224,8 @@ public class TypeChecker {
     private String inferExpr(Expression expr) {
         if (expr instanceof IntLitExpr)
             return inferIntLit((IntLitExpr) expr);
+        if (expr instanceof BoolLitExpr)
+            return T_BOOL;
         if (expr instanceof FloatLitExpr)
             return inferFloatLit((FloatLitExpr) expr);
         if (expr instanceof ColorLitExpr)
@@ -285,22 +287,26 @@ public class TypeChecker {
         String right = inferExpr(expr.getRight());
 
         if (!isNumeric(left)) {
-            throw new TypeException(
-                    "operator " + expr.getOp()
-                            + ": left operand has type '" + displayType(left)
-                            + "' which is not allowed in arithmetic",
-                    expr.getLine());
+            throw new TypeException("operator " + expr.getOp() + ": left operand has type '" + displayType(left)
+                    + "' which is not allowed in arithmetic", expr.getLine());
         }
         if (!isNumeric(right)) {
-            throw new TypeException(
-                    "operator " + expr.getOp()
-                            + ": right operand has type '" + displayType(right)
-                            + "' which is not allowed in arithmetic",
-                    expr.getLine());
+            throw new TypeException("operator " + expr.getOp() + ": right operand has type '" + displayType(right)
+                    + "' which is not allowed in arithmetic", expr.getLine());
         }
 
         if (left.equals(right))
             return left;
+
+        // YENİ KURAL ÜSTTE OLMALI: float literal ve int işleme girerse sonuç float
+        // literal kalır.
+        if (left.equals(T_FLOAT) && right.equals(T_INT))
+            return T_FLOAT;
+        if (right.equals(T_FLOAT) && left.equals(T_INT))
+            return T_FLOAT;
+
+        // ESKİ KURAL ALTTA OLMALI: float literal ile angle veya radius girerse onların
+        // tipine dönüşür.
         if (left.equals(T_FLOAT) && isSpecificNumeric(right))
             return right;
         if (right.equals(T_FLOAT) && isSpecificNumeric(left))
