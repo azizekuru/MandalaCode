@@ -1,0 +1,11 @@
+// bad_arg_type.mnd
+// Passing a float literal to an int parameter — should be caught by type checker.
+
+pattern ring(count : int) {
+    let step : angle = 360.0 / count;
+    radial_repeat(count) {
+        draw brush { radius: 10.0, angle: step, color: #FF4500 };
+    }
+}
+
+ring(3.14);
