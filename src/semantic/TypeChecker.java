@@ -15,6 +15,11 @@ public class TypeChecker {
 
     private final TypeEnvironment env = new TypeEnvironment();
 
+    // Stores the full AST node for every declared pattern so that
+    // checkPatternCall() can retrieve the parameter list for type checking.
+    private final java.util.Map<String, ast.PatternDeclStmt> patternDecls
+            = new java.util.HashMap<>();
+
     // ════════════════════════════════════════════════════════════
     // PUBLIC ENTRY POINT
     // ════════════════════════════════════════════════════════════
@@ -197,6 +202,11 @@ public class TypeChecker {
 
     private void checkPatternDecl(PatternDeclStmt stmt) {
         env.declare(stmt.getName(), "pattern", stmt.getLine());
+
+        // Register the full declaration so checkPatternCall() can
+        // retrieve the parameter list for per-argument type checking.
+        patternDecls.put(stmt.getName(), stmt);
+
         env.enterScope();
         for (PatternParam p : stmt.getParams()) {
             env.declare(p.getName(), p.getType(), p.getLine());
@@ -207,6 +217,7 @@ public class TypeChecker {
     }
 
     private void checkPatternCall(PatternCallStmt stmt) {
+        // Step 1 — verify the callee is a declared pattern.
         String type = env.lookup(stmt.getCallee(), stmt.getLine());
         if (!type.equals("pattern")) {
             throw new TypeException(
@@ -214,8 +225,45 @@ public class TypeChecker {
                             + "' is not a pattern (found type '" + type + "')",
                     stmt.getLine());
         }
-        for (Expression arg : stmt.getArgs())
-            inferExpr(arg);
+
+        // Step 2 — retrieve the full declaration for its parameter list.
+        PatternDeclStmt decl = patternDecls.get(stmt.getCallee());
+        if (decl == null) {
+            throw new TypeException(
+                    "internal: no declaration found for pattern '"
+                            + stmt.getCallee() + "'",
+                    stmt.getLine());
+        }
+
+        java.util.List<PatternParam> params = decl.getParams();
+        java.util.List<Expression>  args   = stmt.getArgs();
+
+        // Step 3 — arity check.
+        if (params.size() != args.size()) {
+            throw new TypeException(
+                    "pattern '" + stmt.getCallee()
+                            + "' expects " + params.size()
+                            + " argument(s) but got " + args.size(),
+                    stmt.getLine());
+        }
+
+        // Step 4 — type check each argument against its declared parameter.
+        // Uses isAssignable() so float literals are accepted by radius/angle
+        // parameters, consistent with checkVarDecl() and checkAssign().
+        for (int i = 0; i < params.size(); i++) {
+            String declared = params.get(i).getType();
+            String actual   = inferExpr(args.get(i));
+
+            if (!isAssignable(declared, actual)) {
+                throw new TypeException(
+                        "pattern '" + stmt.getCallee()
+                                + "': argument " + (i + 1)
+                                + " ('" + params.get(i).getName() + "')"
+                                + " expects type '" + declared
+                                + "' but got '" + displayType(actual) + "'",
+                        stmt.getLine());
+            }
+        }
     }
 
     // ════════════════════════════════════════════════════════════
