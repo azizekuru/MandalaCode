@@ -88,18 +88,26 @@ public class Lexer {
                 return token(TokenType.SLASH, "/");
 
             // ── One-or-two-character operators (maximal munch) ───
-            case '=':
-                return token(match('=') ? TokenType.EQ : TokenType.ASSIGN,
-                        match('=') ? "==" : "="); // note: match already advanced
-            case '!':
-                return token(match('=') ? TokenType.NEQ : TokenType.BANG,
-                        peekPrev2());
-            case '<':
-                return token(match('=') ? TokenType.LTE : TokenType.LT,
-                        peekPrev2());
-            case '>':
-                return token(match('=') ? TokenType.GTE : TokenType.GT,
-                        peekPrev2());
+            case '=': {
+                boolean isEq = match('=');
+                return token(isEq ? TokenType.EQ : TokenType.ASSIGN,
+                             isEq ? "=="         : "=");
+            }
+            case '!': {
+                boolean isNeq = match('=');
+                return token(isNeq ? TokenType.NEQ : TokenType.BANG,
+                             isNeq ? "!="          : "!");
+            }
+            case '<': {
+                boolean isLte = match('=');
+                return token(isLte ? TokenType.LTE : TokenType.LT,
+                             isLte ? "<="          : "<");
+            }
+            case '>': {
+                boolean isGte = match('=');
+                return token(isGte ? TokenType.GTE : TokenType.GT,
+                             isGte ? ">="          : ">");
+            }
             case '&':
                 if (match('&'))
                     return token(TokenType.AND, "&&");
@@ -241,16 +249,6 @@ public class Lexer {
         return source.charAt(pos + 1);
     }
 
-    // returns the one-or-two character lexeme that was just committed
-    // used to build the value string after a match() call
-    private String peekPrev2() {
-        // pos was already advanced past the second char if match() succeeded
-        // walk back up to 2 positions to reconstruct the lexeme
-        int start = pos - 2;
-        if (start < 0)
-            start = 0;
-        return source.substring(start, pos);
-    }
 
     private boolean isAtEnd() {
         return pos >= source.length();
